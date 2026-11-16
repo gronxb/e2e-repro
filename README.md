@@ -66,5 +66,7 @@ npm pkg set "overrides.agent-device=file:$PWD/agent-device"
 npm install && ./repro.sh
 ```
 
+For an iPad placed window, run `xcrun simctl spawn <udid> defaults write dev.e2e.repro.taporigin placed -bool YES` before opening the app in Windowed Apps mode, or drag the window's resize handle. The app supports landscape for the rotation case.
+
 Stop the published daemon first (`npx agent-device daemon stop`); a client
 refuses to replace a newer daemon.

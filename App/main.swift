@@ -66,6 +66,11 @@ final class AppDelegate: UIResponder, UIApplicationDelegate {
     window.rootViewController = ViewController()
     window.makeKeyAndVisible()
     self.window = window
+    // `defaults write dev.e2e.repro.taporigin placed -bool YES` asks iPadOS windowed apps for a
+    // window smaller than the screen: a placed window whose root is not at the screen origin.
+    if UserDefaults.standard.bool(forKey: "placed") {
+      window.windowScene?.sizeRestrictions?.maximumSize = CGSize(width: 551, height: 813)
+    }
     return true
   }
 }
