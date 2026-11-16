@@ -1,0 +1,9 @@
+{
+  "name": "e2e-repro",
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "@e2e-dev/mobile": "0.12.7",
+    "e2e": "0.23.1"
+  }
+}
