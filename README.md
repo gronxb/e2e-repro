@@ -19,6 +19,8 @@ taken over 150 s never got the viewport back, so re-observing doesn't help.
 
 Packages: `e2e@0.23.1`, `@e2e-dev/mobile@0.12.7` (agent-device 0.21.37).
 
+Fixes: callstack/agent-device#4573 (the refusal), e2e-inc/e2e#1820 (the error it surfaces as).
+
 ## Needs
 
 - macOS with Xcode and a booted iPhone simulator. No Xcode project: the app
