@@ -19,7 +19,7 @@ taken over 150 s never got the viewport back, so re-observing doesn't help.
 
 Packages: `e2e@0.23.1`, `@e2e-dev/mobile@0.12.7` (agent-device 0.21.37).
 
-Fixes: callstack/agent-device#4573 (the refusal), e2e-inc/e2e#1820 (the error it surfaces as).
+Fixes: callstack/agent-device#4573 (the refusal), e2e-inc/e2e#1820 (the error it surfaces as), callstack/agent-device#4650 (the `RUNNER_BUSY` that follows on 0.21.38+).
 
 ## Needs
 
@@ -55,12 +55,46 @@ agent-device snapshot -i     # warns: This snapshot cannot establish the window 
 agent-device press @e2       # Ref @e2 has no established screen-coordinate origin (window-origin-unknown)
 ```
 
+## After agent-device 0.21.38: `RUNNER_BUSY`
+
+0.21.38 (callstack/agent-device#4573) accepts a full-screen root, so the
+`window-origin-unknown` refusal is gone. The same run then fails at a later
+round with a different error:
+
+```
+ENGINE_FAILURE: perform tap failed: the iOS automation runner is still finishing a command that overran its watchdog
+```
+
+The runner reads the snapshot's viewport after the root tree, through a live
+`app.windows` resolution. Each of its reads (the window list, `exists`,
+`frame`) snapshots the whole app again. On this screen they took 7.4 s
+together, ran past the read's 1 s slice, and left main-thread work that
+refused the next tap. The runner log shows it
+(`~/.agent-device/sessions/e2e-repro-tap-0/runner.log`, or under
+`~/.agent-device/dev/<checkout>/` for a source checkout):
+
+```
+AGENT_DEVICE_RUNNER_MAIN_THREAD_WORK_ABANDONED operation=snapshot_viewport slice=1.0
+AGENT_DEVICE_RUNNER_BUSY command=tap ... abandonedForSeconds=4.9
+```
+
+Fix: callstack/agent-device#4650 reads a full-screen window's viewport from
+the snapshot it already holds. iPhone 17 Pro simulator, iOS 26.5:
+
+| agent-device | `./repro.sh` passes | `snapshot_viewport` abandoned | `RUNNER_BUSY` taps |
+| --- | --- | --- | --- |
+| main `945b1f0d0` (as 0.21.39) | 1/4 | 4 | 3 |
+| #4650 | 4/4 | 0 | 0 |
+
+The agent-device CLI alone rarely shows it: `press` reads the app state
+first, a read-only command the daemon resends until the work drains.
+
 ## Testing a fix
 
 agent-device from a source checkout, linked in with an npm override:
 
 ```sh
-git clone -b fix/ios-private-ax-full-screen-origin https://github.com/gronxb/agent-device.git
+git clone -b fix/ios-snapshot-viewport-from-root-snapshot https://github.com/gronxb/agent-device.git
 (cd agent-device && pnpm install --frozen-lockfile && pnpm build && pnpm build:xcuitest:ios)
 npm pkg set "overrides.agent-device=file:$PWD/agent-device"
 npm install && ./repro.sh
